@@ -1,0 +1,116 @@
+---
+title: "Homework03_Section3.7 Exercises"
+author: "Guanghua Qiao"
+date: "2020.3.28"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercise 1
+
+![Sketch of typical curves.](D:/Ex3.7_1.png)
+
+Null hypotheses:
+H01 (Intercept)£ºwith given TV, radio and newspaper, the mean value of sales is 0.
+H02 (TV): with given radio and newspaper, TV has no effect on sales.
+H03 (radio): with given TV and newspaper, radio has no effect on sales.
+H04 (newspaper): with given TV and radio, newspaper has no effect on sales.
+
+Based on these p-values, it can be concluded that newspaper has no effect on sales and TV & radio have effect on sales.
+
+## Exercise 2
+KNN classifier is for classification  (discrete output), while
+KNN regression methods is for continuous output.
+The former is qualitative while the latter is quantitative.
+
+
+## Exercise 3
+(a)
+iii is correct.
+Because 
+Salary(male) = 50 + 20 GPA + 0.07 IQ + 0.01 (GPA*IQ)
+Salary(female) = 50 + 20 GPA + 0.07 IQ + 35 + 0.01 (GPA*IQ) - 10 GPA
+
+For a fixed value of IQ and GPA, 
+
+Salary(male) - Salary(female) = 10 GPA - 35,
+
+so that males earn more on average than females provided that the GPA is high enough.
+
+(b)
+IQ = 110 and GPA = 4.0
+
+Salary(female)=50+20*4+0.07*110+35+0.01*4*110-10*4=137.1
+
+(c)
+False.
+
+Whether there is evidence of an interaction effect between GPA/IQ is determined by the corresponding p-value rather than the value of coefficient.
+
+## Exercise 4
+(a)
+Training RSS for the cubic regression would be lower than the training RSS for the linear regression.
+Because a cubic regression would fit the noise, making training RSS lower.
+
+(b)
+Testing RSS for the linear regression would be lower than the training RSS for the cubic regression.
+Because when the true relationship between X and Y is linear, overfitting of the cubic regression would increases testing RSS.
+
+(c)
+Training RSS for the cubic regression would be lower than the training RSS for the linear regression.
+Because cubic regression with higher flexibility fits the data points better, thus having a lower training RSS. 
+
+(d)
+There is not enough information to tell.
+Because we don't know how far it is from linear.
+If the true relationship between X and Y is nearly linear, testing RSS for the linear regression would be lower.
+If the true relationship between X and Y is highly non-linear, testing RSS for the cubic regression would be lower.
+
+
+## Exercise 5
+
+## Exercise 6
+(a)
+
+(b)
+
+
+
+## Exercise 7
+(a)
+
+
+(b) 
+
+
+## Exercise 8
+(a)
+
+
+(b)
+
+
+## Exercise 10
+(a)
+
+
+
+(b)
+
+
+## Exercise 12
+(a)
+
+
+(b)
+
+
+
+## Exercise 14
+(a)
+
+(b)
+
