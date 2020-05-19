@@ -177,7 +177,7 @@ It appears a married couple makes more money on average than other groups.
 
 It also appears that Informational jobs are higher-wage than Industrial jobs on average.
 
-## Polynomial Regression and Step functions
+### Polynomial Regression and Step functions
 ```{r 7.2}
 fit = lm(wage~maritl, data=Wage)
 deviance(fit)
@@ -187,41 +187,114 @@ fit = lm(wage~maritl+jobclass, data=Wage)
 deviance(fit)
 ```
 
-## Splines
-Unable to fit splines on categorical variables.
-
-## GAMs
-```{r}
-library(gam)
-fit = gam(wage~maritl+jobclass+s(age,4), data=Wage)
-deviance(fit)
-```
-
+### Splines
 We cannot fit splines to categorical variables (factors). 
 
-`maritl` and `jobclass` do add statistically significant
-improvements to the previously discussed models.
+### GAMs
+```{r}
+options(warn=-1)
+library(gam)
+fit1 = gam(wage~maritl+jobclass+s(age,4), data=Wage)
+deviance(fit1)
+fit2 = gam(wage~maritl+jobclass+s(age,5), data=Wage)
+deviance(fit2)
+fit3 = gam(wage~maritl+jobclass+s(age,5)+education, data=Wage)
+deviance(fit3)
 
+gam.m1=gam(wage~s(age ,5) +education ,data=Wage)
+deviance(gam.m1)
+
+gam=gam(wage~s(age ,5),data=Wage)
+deviance(gam)
+
+anova(gam,fit2,fit3)
+anova(gam.m1,fit3)
+```
+
+Marital status ("maritl") and job class do add statistically significant improvements to the previously discussed models in R Lab (Chapter7.8).
 
 
 ## Exercise 9
 ###(a)
-
+```{r}
+library(MASS)
+set.seed(1)
+attach(Boston)
+lm.fit = lm(nox~poly(dis, 3), data=Boston)
+summary(lm.fit)
+dislim = range(dis)
+dis.grid = seq(from=dislim[1], to=dislim[2], by=0.1)
+lm.pred = predict(lm.fit, list(dis=dis.grid))
+plot(nox~dis, data=Boston, col="darkgrey")
+lines(dis.grid, lm.pred, col="red", lwd=2)
+```
+The regression output shows that all polynomial terms are significant when predicting `nox` using `dis`. 
 
 ###(b)
-
+```{r}
+RSS = rep(NA, 10)
+for (i in 1:10) {
+  lm.fit = lm(nox~poly(dis, i), data=Boston)
+  RSS[i] = sum(lm.fit$residuals^2)
+}
+RSS
+```
+Train RSS monotonically decreases with degree of polynomial. 
 
 ###(c)
-
+### 10-fold cross validation
+```{r 9c}
+library(boot)
+all.deltas = rep(NA, 10)
+for (i in 1:10) {
+  glm.fit = glm(nox~poly(dis, i), data=Boston)
+  all.deltas[i] = cv.glm(Boston, glm.fit, K=10)$delta[2]
+}
+all.deltas
+plot(1:10, all.deltas, xlab="Polynomial degree", ylab="CV error", type="l", pch=20, lwd=2)
+```
+Polynomial degree of 4 has the lowest cross validation error, so 4 is selected as the best polynomial degree.
 
 ###(d)
-
+```{r 9d}
+summary(Boston$dis)
+```
+$dis$ has limits of about 1 and 13 respectively. I split this range in roughly equal 4 intervals and establish knots at $[4, 7, 10]$.
+```{r}
+library(splines)
+sp.fit = lm(nox~bs(dis, df=4, knots=c(4, 7, 10)), data=Boston)
+summary(sp.fit)
+sp.pred = predict(sp.fit, list(dis=dis.grid))
+plot(nox~dis, data=Boston, col="darkgrey")
+lines(dis.grid, sp.pred, col="red", lwd=2)
+```
+All terms in spline fit are significant. Plot shows that the spline fits data well except at the extreme values of $dis$ (especially $dis > 10$) for lack of data points. 
 
 ###(e)
+Fit regression splines with dfs between 3 and 16. 
+```{r}
+all.cv = rep(NA, 16)
+for (i in 3:16) {
+  lm.fit = lm(nox~bs(dis, df=i), data=Boston)
+  all.cv[i] = sum(lm.fit$residuals^2)
+}
+all.cv[-c(1, 2)]
+```
+Train RSS decreases till df=14 except at df=9 and then slightly increases for df=15 and df=16.
 
-
-###(f)
-
+###(f)  10-fold cross validation
+Try all integer values of df between 3 and 16.
+```{r 9f}
+all.cv = rep(NA, 16)
+set.seed(1)
+for (i in 3:16) {
+  lm.fit = glm(nox~bs(dis, df=i), data=Boston)
+  all.cv[i] = cv.glm(Boston, lm.fit, K=10)$delta[2]
+}
+plot(3:16, all.cv[-c(1,2)], lwd=2, type="l", xlab="df", ylab="CV error")
+all.cv[-c(1,2)]
+```
+CV error attains minimum at df=12, so $12$ is selected as the optimal degrees of freedom.
 
 
 ## Exercise 11
