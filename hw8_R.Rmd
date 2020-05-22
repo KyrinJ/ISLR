@@ -1,0 +1,236 @@
+---
+title: "Homework08_Section 8.4 Exercises"
+author: "Guanghua Qiao"
+date: "2020.5.22"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercise 1
+```{r label="1"}
+par(xpd=NA)
+plot(NA, NA, type="n", xlim=c(0,100), ylim=c(0,100), xlab="X", ylab="Y")
+# t1: x = 60; (60, 0) (60, 100)
+lines(x=c(60,60),y=c(0,100))
+text(x=60, y=108, labels=c("t1"), col="red")
+# t2: y = 60; (0, 60) (60, 60)
+lines(x=c(0,60), y=c(60,60))
+text(x=30, y=60, labels=c("t2"), col="red")
+# t3: x = 80; (80,0) (80, 100)
+lines(x=c(80,80),y=c(0,100))
+text(x=80, y=108, labels=c("t3"), col="red")
+# t4: x = 20; (20,0) (20, 60)
+lines(x=c(20,20),y=c(0,60))
+text(x=20, y=30, labels=c("t4"), col="red")
+# t5: y=20; (80,20) (100,20)
+lines(x=c(80,100),y=c(20,20))
+text(x=90, y=20, labels=c("t5"), col="red")
+text(x=(60+80)/2, y=50, labels=c("R1"))
+text(x=30, y=80, labels=c("R2"))
+text(x=90, y=60, labels=c("R3"))
+text(x=90, y=10, labels=c("R4"))
+text(x=40, y=30, labels=c("R5"))
+text(x=10, y=30, labels=c("R6"))
+```
+
+```
+        [  X<60 ] 
+        |       |
+    [Y<60]    [X<80]
+    |   |     |    |
+ [X<20] R2    R1   [Y<20]
+ |    |            |    |
+ R6   R5           R4   R3
+```
+
+## Exercise 2
+Based on algorithm 8.2, Boosting for Regression Trees
+
+$0.$ $\hat{f}(x) = 0, r_i = y_i$
+
+$1.$ a) $\hat{f}^1(x) = \beta_{1_1} I(X_1 < t_1) + \beta_{0_1}$
+
+$1.$ b) $\hat{f}(x) = \lambda\hat{f}^1(x)$
+
+$1.$ c) $r_i = y_i - \lambda\hat{f}^1(x_i)$
+
+For the $j$th iteration, where $b=j$:
+
+$j.$ a) $\hat{f}^j(x) = \beta_{1_j} I(X_j < t_j) + \beta_{0_j}$
+
+$j.$ b) $\hat{f}(x) = \lambda\hat{f}^1(X_1) + \dots + \lambda\hat{f}^j(X_j) + \dots +
+\lambda\hat{f}^{p-1}(X_{p-1}) + \lambda\hat{f}^p(X_p)$
+
+Since each iteration's fit is a distinct variable stump, there are only $p$
+fits based on "$j.$ b)".
+
+So, boosting using depth-one trees (or stumps) leads to an additive model of the form
+$$f(X) = \sum_{j=1}^{p} f_j(X_j)$$
+
+
+## Exercise 3
+```{r label="3"}
+p = seq(0, 1, .01)
+gini = p * (1-p) * 2
+entropy = - (p * log(p) + (1-p) * log(1-p))
+class.err = 1 - pmax(p, 1-p)
+plot(p,gini,type='l',xlab='p',ylab='Quantities',ylim=c(0,0.7),col='red')
+lines(p,entropy,col='green')
+lines(p,class.err,col='blue')
+legend('topright',c('gini', 'entropy', 'class.err'),lty=1,col=c('red','green','blue'))
+```
+
+#
+#
+## Exercise 4
+###(a)
+```
+              [X1 < 1]
+              |      |
+       [X2 < 1]      5
+       |      |
+[X1 < 0]      15
+|      |
+3      [X2<0]
+       |    |
+      10    0
+```
+###(b)
+```{r label="4b"}
+par(xpd=NA)
+plot(NA, NA, type="n", xlim=c(-2,2), ylim=c(-3,3), xlab="X1", ylab="X2")
+# X2 < 1
+lines(x=c(-2,2), y=c(1,1))
+# X1 < 1 with X2 < 1
+lines(x=c(1,1), y=c(-3,1))
+text(x=(-2+1)/2, y=-1, labels=c(-1.80))
+text(x=1.5, y=-1, labels=c(0.63))
+# X2 < 2 with X2 >= 1
+lines(x=c(-2,2), y=c(2,2))
+text(x=0, y=2.5, labels=c(2.49))
+# X1 < 0 with X2<2 and X2>=1
+lines(x=c(0,0), y=c(1,2))
+text(x=-1, y=1.5, labels=c(-1.06))
+text(x=1, y=1.5, labels=c(0.21))
+```
+
+## Exercise 5
+```{r}
+p = c(0.1, 0.15, 0.2, 0.2, 0.55, 0.6, 0.6, 0.65, 0.7, 0.75)
+```
+
+### Majority approach
+```{r}
+sum(p>0.5) > sum(p<0.5)  
+```
+The number of red predictions is greater than the number of green predictions.
+
+Based on the majority vote approach, the final classification is RED.
+
+### Average approach
+```{r}
+mean(p)
+```
+The average of the probabilities is less than the 50% threshold.
+
+Based on the average probability, the final classification is GREEN.
+
+
+## Exercise 6
+### Algorithm 8.1 Building a Regression Tree
+1. Use recursive binary splitting to grow a large tree on the training
+data, stopping only when each terminal node has fewer than some
+minimum number of observations.
+
+2. Apply cost complexity pruning to the large tree in order to obtain a
+sequence of best subtrees, as a function of $\alpha$.
+
+3. Use K-fold cross-validation to choose $\alpha$. That is, divide the training
+observations into $K$ folds. For each $k = 1, . . .,K$:
+(a) Repeat Steps 1 and 2 on all but the $k$th fold of the training data.
+(b) Evaluate the mean squared prediction error on the data in the
+left-out $k$th fold, as a function of $\alpha$.
+Average the results for each value of $\alpha$, and pick $\alpha$ to minimize the
+average error.
+
+4. Return the subtree from Step 2 that corresponds to the chosen value
+of $\alpha$.
+
+
+## Exercise 7
+For $\tt{Boston}$ data, $p = 13$.
+
+```{r 9a}
+library(MASS)
+library(randomForest)
+set.seed(100)
+train = sample(dim(Boston)[1], dim(Boston)[1] / 2)
+X.train = Boston[train, -14]
+X.test = Boston[-train, -14]
+Y.train = Boston[train, 14]
+Y.test = Boston[-train, 14]
+p = dim(Boston)[2] - 1
+p.2 = p / 2
+p.sq = sqrt(p)
+rf.boston.p = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p, ntree=500)
+rf.boston.p.2 = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.2, ntree=500)
+rf.boston.p.sq = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.sq, ntree=500)
+plot(1:500, rf.boston.p$test$mse, col="green", type="l", xlab="Number of Trees", ylab="Test MSE",
+     ylim=c(12, 22))
+lines(1:500, rf.boston.p.2$test$mse, col="red", type="l")
+lines(1:500, rf.boston.p.sq$test$mse, col="blue", type="l")
+legend("topright", c("m=p", "m=p/2", "m=sqrt(p)"), col=c("green", "red", "blue"), cex=1, lty=1)
+```
+The plot shows that test MSE for single tree is quite high. 
+
+Test MSE is reduced by adding more trees to the model and stabilizes around 200 to 300 hundred trees. 
+
+Test MSE for including all variables at split is higher as compared to both using half or square-root number of variables. 
+
+With different setting of random seeds, the test MSE for different values of $m$ varies a lot.
+
+
+## Exercise 9
+###(a)
+
+###(b)
+
+###(c)
+
+###(d)
+
+###(e)
+
+
+###(f)
+
+
+###(g)
+
+
+###(h)
+
+
+###(i)
+
+
+###(j)
+
+
+###(k)
+
+
+
+## Exercise 11
+###(a)
+
+###(b)
+
+###(c)
+
+
+
+
