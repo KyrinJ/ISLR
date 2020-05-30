@@ -27,6 +27,25 @@ y$type='0'
 rawcombine=rbind(x,y)
 
 ######  seperate train & test set  ######
+set.seed(100)
+train.can=sample(1356,1356/2)
+train.noncan=sample(2178,2178/2)
+
+can.train=x[train.can,]
+noncan.train=y[train.noncan,]
+table(can.train$stage)
+table(can.train$type)
+train=rbind(can.train,noncan.train)
+
+######  pre-process  ######
+summary(train$`hsa-let-7a-5p`)
+
+#normalization?
+
+
+
+
+######  tree  ######
 
 
 
