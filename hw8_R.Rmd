@@ -195,42 +195,159 @@ With different setting of random seeds, the test MSE for different values of $m$
 
 ## Exercise 9
 ###(a)
+```{r}
+library(ISLR)
+attach(OJ)
+set.seed(98)
+train = sample(dim(OJ)[1], 800)
+OJ.train = OJ[train, ]
+OJ.test = OJ[-train, ]
+```
 
 ###(b)
+```{r 9b}
+library(tree)
+oj.tree = tree(Purchase~., data=OJ.train)
+summary(oj.tree)
+```
+
+The tree uses two variables: $\tt{LoyalCH}$, $\tt{PriceDiff}$ and $\tt{ListPriceDiff}$. 
+Training error rate (misclassification error) for the tree is $0.1688$.
+The tree has $7$ terminal nodes. 
 
 ###(c)
+```{r 9c}
+oj.tree
+```
+Let's pick terminal node labeled "10)". The splitting variable at this node is $\tt{PriceDiff}$. The splitting value of this node is $0.05$. There are $60$ points in the subtree below this node. The deviance for all points contained in region below this node is $62.72$. A "*" in the line denotes that this is a terminal node. 
+
+The prediction at this node is $\tt{Purchase}$ = $\tt{MM}$. About $21.7$% points in this node have $\tt{CH}$ as value of $\tt{Purchase}$. Remaining $78.3$% points have $\tt{MM}$ as value of $\tt{Purchase}$.
 
 ###(d)
+```{r 9d}
+plot(oj.tree)
+text(oj.tree, pretty=0)
+```
+$\tt{LoyalCH}$ is the most important variable of the tree. Top 3 nodes contain $\tt{LoyalCH}$. If $\tt{LoyalCH} < 0.276$, the tree predicts $\tt{MM}$. If $\tt{LoyalCH} > 0.754$, the tree predicts $\tt{CH}$. For intermediate values of $\tt{LoyalCH}$, the decision also depends on the value of $\tt{PriceDiff}$ and $\tt{ListPriceDiff}$.
 
 ###(e)
-
+```{r 9e}
+oj.pred = predict(oj.tree, OJ.test, type="class")
+table(OJ.test$Purchase, oj.pred)
+```
+The test error rate is $(28+23)/(132+87+28+23)=0.1889$
 
 ###(f)
+```{r 9f}
+cv.oj = cv.tree(oj.tree, FUN=prune.tree)
+cv.oj
+```
 
+The optimal tree size is 5.
 
 ###(g)
-
+```{r 9g}
+plot(cv.oj$size, cv.oj$dev, type="b", xlab="Tree Size", ylab="Deviance")
+```
 
 ###(h)
-
+Tree size of 5 gives the lowest cross-validation error.
 
 ###(i)
-
+```{r 9i}
+oj.pruned = prune.tree(oj.tree, best=5)
+oj.pruned
+plot(oj.pruned)
+text(oj.pruned, pretty=0)
+```
 
 ###(j)
+```{r 9j}
+summary(oj.pruned)
+```
+Training misclassification error rate of the pruned tree is $0.19$. 
+While training error rate of the unpruned tree is $0.1688$.
 
+The training error rate of the pruned tree is higher.
 
 ###(k)
+```{r 9k}
+pred.pruned = predict(oj.pruned, OJ.test, type="class")
+misclass.pruned = sum(OJ.test$Purchase != pred.pruned)
+misclass.pruned / length(pred.pruned)
+pred.unpruned = predict(oj.tree, OJ.test, type="class")
+misclass.unpruned = sum(OJ.test$Purchase != pred.unpruned)
+misclass.unpruned / length(pred.unpruned)
+```
+Test error rate of the pruned tree is $0.2037$. 
+While test error rate of the unpruned tree is $0.1889$.
 
+The test error rate of the pruned tree is higher.
 
 
 ## Exercise 11
 ###(a)
+```{r 11a}
+library(ISLR)
+train = 1:1000
+Caravan$Purchase = ifelse(Caravan$Purchase == "Yes", 1, 0)
+Caravan.train = Caravan[train, ]
+Caravan.test = Caravan[-train, ]
+```
 
 ###(b)
+```{r 11b}
+library(gbm)
+set.seed(342)
+boost.caravan = gbm(Purchase~., data=Caravan.train, n.trees=1000, shrinkage=0.01,
+                    distribution="bernoulli")
+summary(boost.caravan)
+```
+$\tt{PPERSAUT}$, $\tt{MKOOPKLA}$ and $\tt{MOPLHOOG}$ appear to be three most important variables in that order.
 
 ###(c)
+```{r 11c}
+boost.prob = predict(boost.caravan, Caravan.test, n.trees=1000, type="response")
+boost.pred = ifelse(boost.prob >0.2, 1, 0)
+table(Caravan.test$Purchase, boost.pred)
+34 / (137 + 34)
+```
+About $20$% of people predicted to make purchase actually end up making one.
 
+### KNN
+```{r}
+library(class)
+knn.train=Caravan.train[ , !colnames(Caravan.train) %in% c("Purchase")]
+knn.test=Caravan.test[ , !colnames(Caravan.test) %in% c("Purchase")]
+knn.caravan=knn(knn.train,knn.test,Caravan.train$Purchase,k=50,prob = T)
+knn.pred = ifelse(attr(knn.caravan,"prob") > 0.2, 1, 0)
+table(Caravan.test$Purchase,knn.pred)
 
+precision=0
+for (i in 1:100){
+  set.seed(342)
+  knn.caravan=knn(knn.train,knn.test,Caravan.train$Purchase,k=i,prob=T)
+  knn.pred = ifelse(attr(knn.caravan,"prob") > 0.2, 1, 0)
+  if (sum(Caravan.test$Purchase==knn.pred & knn.pred==1)/sum(knn.pred==1)>precision) {
+    precision=sum(Caravan.test$Purchase==knn.pred & knn.pred==1)/sum(knn.pred==1)
+    k <<- i
+  }
+}
+precision
+k
+```
+KNN performs very poorly on this dataset when predicting people whether to make purchase if the estimated probability of purchase is greater than 20 %.
+
+### Logistic Regression
+```{r}
+lm.caravan = glm(Purchase~., data=Caravan.train, family=binomial)
+lm.prob = predict(lm.caravan, Caravan.test, type="response")
+lm.pred = ifelse(lm.prob > 0.2, 1, 0)
+table(Caravan.test$Purchase, lm.pred)
+58 / (350 + 58)
+```
+About $14$% of people predicted to make purchase using logistic regression actually end up making one. 
+
+This is lower than boosting. So boosting performs better.
 
 

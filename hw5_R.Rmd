@@ -1,0 +1,304 @@
+---
+title: "Homework05_Section 5.4 Exercises"
+author: "Guanghua Qiao"
+date: "2020.4.19"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercise 1
+### Proof:
+$$
+\begin{aligned}
+Var(\alpha X + (1 - \alpha)Y)
+&= Var(\alpha X) + Var((1 - \alpha) Y) + 2 Cov(\alpha X, (1 - \alpha) Y)
+\\
+&= \alpha^2 Var(X) + (1 - \alpha)^2 Var(Y) + 2 \alpha (1 - \alpha) Cov(X, Y)
+\\
+&= \sigma_X^2 \alpha^2 + \sigma_Y^2 (1 - \alpha)^2 + 2 \sigma_{XY} (-\alpha^2 + \alpha)
+\end{aligned}
+$$
+
+Let $f(\alpha)=Var(\alpha X + (1 - \alpha)Y)$, then
+
+$$
+\frac {d} {d\alpha} f(\alpha)
+= 2 \sigma_X^2 \alpha - 2 \sigma_Y^2 (1 - \alpha) + 2 \sigma_{XY}
+(-2 \alpha + 1)
+$$
+
+$$
+\begin{aligned}
+\frac{1}{2}\frac {d} {d\alpha} f(\alpha)
+&= \sigma_X^2 \alpha + \sigma_Y^2 (\alpha - 1) + \sigma_{XY} (-2 \alpha + 1)
+\\
+&= (\sigma_X^2 + \sigma_Y^2 - 2 \sigma_{XY}) \alpha - \sigma_Y^2 + \sigma_{XY}
+\end{aligned}
+$$
+
+Let $\frac {d} {d\alpha} f(\alpha)=0$, then we have
+
+$$
+\alpha = \frac {\sigma_Y^2 - \sigma_{XY}} {\sigma_X^2 + \sigma_Y^2 - 2 \sigma_{XY}}
+$$
+
+So, it is proved that $\alpha$ given by (5.6) does indeed minimize $Var(\alpha X + (1 - \alpha)Y)$.
+
+## Exercise 2
+###(a)
+$1 - \frac{1}{n}$
+
+###(b)
+$1 - \frac{1}{n}$
+
+###(c)
+Bootstrap is sampling with replacement.
+
+The probability that each of $n$ bootstrap observation is not the $j$th observation from the original sample is $1 - 1/n$,
+and they are independent.
+
+So the probability that the $j$th observation is not in the bootstrap sample is $(1 - 1/n)^n$.
+
+###(d)
+$$
+1-(1 - \frac{1}{n})^n=1-(1-\frac{1}{5})^5=67.232\%
+$$
+
+###(e)
+$$
+1-(1 - \frac{1}{n})^n=1-(1-\frac{1}{100})^{100}=63.397\%
+$$
+
+###(f)
+$$
+1-(1 - \frac{1}{n})^n=1-(1-\frac{1}{10000})^{10000}=63.214\%
+$$
+
+###(g)
+```{r}
+x = 1:100000
+plot(x,(1 - (1 - 1/x)^x))
+```
+The probability rapidly drop to approximately 63.2% and correspondingly, 
+there is an asymptote of about 63.2% in the plot.
+
+###(h)
+```{r}
+store = rep(NA, 10000)
+set.seed(1)
+for (i in 1:10000) {
+  store[i] = sum(sample(1:100, rep=T) == 4) > 0
+}
+mean(store)
+```
+
+The estimated probability is 64.08%, close to the theoretical probability of 63.397%.
+
+## Exercise 3
+###(a)
+1. Randomly splitting the set of n observations into k non-overlapping groups.
+
+2. Each of k groups acts as a validation set and the remainder as a training set. Fit the model using only the training set, and compute the validation set error.
+
+3. The test error is estimated by averaging the k MSE estimates.
+
+###(b)
+#### i. The validation set approach
+Advantages: conceptually simple and easily implemented.
+
+Disadvantages: (1) the estimate of the test error rate can be highly variable depending on which observations are included in the training and validation sets.
+
+(2) the validation set error rate may tend to overestimate the test error rate for the model fit on the entire data set.
+
+#### ii. LOOCV
+Advantages: lower bias than k-fold cv.
+
+Disadvantages: (1) LOOCV is the most computationally intense method since the model must be fit n times.
+
+(2) LOOCV has higher variance than k-fold CV.
+
+## Exercise 4
+We might use bootstrap approach to estimate the standard deviation of prediction.
+
+The bootstrap approach works by repeatedly sampling observations (with replacement) from the original data set $B$ times for some large value of $B$, each time fitting a new model and subsequently obtaining the RMSE of the estimates for all $B$ models.
+
+Then we compute the standard deviation of prediction using these bootstrap estimates.
+
+## Exercise 5
+###(a)
+```{r}
+library(ISLR)
+#summary(Default)
+set.seed(1)
+attach(Default)
+glm.fit = glm(default~income+balance, data=Default, family=binomial)
+summary(glm.fit)
+```
+
+###(b)
+```{r}
+valset = function() {
+# i.
+train = sample(dim(Default)[1], dim(Default)[1]/2)
+# ii.
+glm.fit = glm(default~income+balance, data=Default, family=binomial,
+              subset=train)
+# iii.
+glm.pred = rep("No", dim(Default)[1]/2)
+glm.probs = predict(glm.fit, Default[-train,], type="response")
+glm.pred[glm.probs>.5] = "Yes"
+# iv.
+return(mean(glm.pred != Default[-train,]$default))
+}
+set.seed(1)
+valset()
+```
+The test error of this model is estimated as 2.86% using validation set approach.
+
+###(c)
+```{r}
+valset()
+valset()
+valset()
+```
+The test error is around 2.6%
+
+###(d)
+```{r}
+valset = function() {
+train = sample(dim(Default)[1], dim(Default)[1]/2)
+glm.fit = glm(default~income+balance+student, data=Default, family=binomial,
+              subset=train)
+glm.pred = rep("No", dim(Default)[1]/2)
+glm.probs = predict(glm.fit, Default[-train,], type="response")
+glm.pred[glm.probs>.5] = "Yes"
+mean(glm.pred != Default[-train,]$default)
+}
+valset()
+valset()
+valset()
+detach(Default)
+```
+Including a dummy variable for student doesn't appear to lead to a reduction in the test error rate using the validation set approach.
+
+## Exercise 7
+###(a)
+```{r}
+#summary(Weekly)
+set.seed(1)
+attach(Weekly)
+glm.fit = glm(Direction~Lag1+Lag2, data=Weekly, family=binomial)
+summary(glm.fit)
+```
+
+###(b)
+```{r}
+glm.fit = glm(Direction~Lag1+Lag2, data=Weekly[-1,], family=binomial)
+summary(glm.fit)
+```
+
+###(c)
+```{r}
+predict.glm(glm.fit, Weekly[1,], type="response") > 0.5
+Weekly$Direction[1]
+```
+Prediction is 'Up', while true direction is 'Down'.
+
+This observation isn't correctly classified.
+
+###(d)
+```{r}
+error = rep(0, dim(Weekly)[1])
+for (i in 1:(dim(Weekly)[1])) {
+   glm.fit = glm(Direction~Lag1+Lag2, data=Weekly[-i,], family=binomial)
+   uppred = predict.glm(glm.fit, Weekly[i,], type="response") > 0.5
+   uptrue = Weekly[i,]$Direction == "Up"
+   if (uppred != uptrue)
+     error[i] = 1
+}
+sum(error)
+```
+
+###(e)
+```{r}
+mean(error)
+detach(Weekly)
+```
+The LOOCV estimate for the test error is 45.00%
+
+The test error rate of the logistic regression model is relatively high.
+
+## Exercise 9
+###(a)
+```{r}
+library(MASS)
+#summary(Boston)
+set.seed(1)
+attach(Boston)
+(muhat = mean(medv))
+```
+$\hat{\mu}=22.5328$
+
+###(b)
+```{r}
+(sehat = sd(medv) / sqrt(length(medv)))
+```
+Standard error of $\hat{\mu}$ is estimated as 0.4089
+
+###(c)
+```{r}
+boot.fn = function(data, index) return(mean(data[index]))
+library(boot)
+set.seed(1)
+bstrap = boot(medv, boot.fn, 1000)
+bstrap
+```
+Standard error of $\hat{\mu}$ is estimated as 0.4119 using bootstrap, similar to the estimate in (b).
+
+###(d)
+```{r}
+c(bstrap$t0 - 2*0.4119, bstrap$t0 + 2*0.4119)
+c(bstrap$t0 - 1.96*0.4119, bstrap$t0 + 1.96*0.4119)
+t.test(medv)
+```
+The bootstrap estimate is similar to the t.test estimate.
+
+###(e)
+```{r}
+(medv.med = median(medv))
+```
+$\hat{\mu}_{med}=21.2$
+
+###(f)
+```{r}
+boot.fn = function(data, index) return(median(data[index]))
+set.seed(1)
+boot(medv, boot.fn, 1000)
+```
+Standard error of $\hat{\mu}_{med}$ is estimated as 0.3801 using bootstrap. The standard error is small relative to the median value.
+
+###(g)
+```{r}
+(medv0.1 = quantile(medv, c(0.1)))
+```
+$\hat{\mu}_{0.1}=12.75$
+
+###(h)
+```{r}
+boot.fn = function(data, index) return(quantile(data[index], c(0.1)))
+set.seed(1)
+boot(medv, boot.fn, 1000)
+detach(Boston)
+```
+Standard error of $\hat{\mu}_{0.1}$ is estimated as 0.5051 using bootstrap. The standard error is small relative to the tenth percentile value.
+
+## Problem:
+R Markdown values keeps changing when knitting as PDF even when using set.seed()
+
+## Statement:
+All the results in findings and conclusions are based on set.seed(1)
+
+
