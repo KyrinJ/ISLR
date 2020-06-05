@@ -1,0 +1,257 @@
+---
+title: "Homework10_Section 10.7 Exercises"
+author: "Guanghua Qiao"
+date: "2020.6.5"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercise 1
+###(a)
+$$
+\begin{aligned}
+\frac{1}{|C_k|} \sum\limits_{i,i^{\prime} \in C_k} \sum\limits_{j=1}^p (x_{ij} - x_{i^\prime j})^2
+&= \frac{1}{|C_k|} \sum\limits_{i,i^{\prime} \in C_k} \sum\limits_{j=1}^p ((x_{ij} - \bar{x}_{kj}) - (x_{i^\prime j} - \bar{x}_{kj}))^2
+\\
+&= \frac{1}{|C_k|} \sum\limits_{i,i^{\prime} \in C_k} \sum\limits_{j=1}^p ((x_{ij} - \bar{x}_{kj})^2 - 2 (x_{ij} - \bar{x}_{kj})(x_{i^\prime j} - \bar{x}_{kj}) + (x_{i^\prime j} - \bar{x}_{kj})^2)
+\\
+&= \frac{|C_k|}{|C_k|} \sum\limits_{i \in C_k} \sum\limits_{j=1}^p (x_{ij} - \bar{x}_{kj})^2 +
+  \frac{|C_k|}{|C_k|} \sum\limits_{i^{\prime} \in C_k} \sum\limits_{j=1}^p (x_{i^\prime j} - \bar{x}_{kj})^2 -
+  \frac{2}{|C_k|} \sum\limits_{i,i^{\prime} \in C_k} \sum\limits_{j=1}^p (x_{ij} - \bar{x}_{kj})(x_{i^\prime j} - \bar{x}_{kj})
+\\
+&= 2 \sum\limits_{i \in C_k} \sum\limits_{j=1}^p (x_{ij} - \bar{x}_{kj})^2 + 0
+\end{aligned}
+$$
+So,
+$$
+\frac{1}{|C_k|} \sum\limits_{i,i^{\prime} \in C_k} \sum\limits_{j=1}^p (x_{ij} - x_{i^\prime j})^2 = 
+2 \sum\limits_{i \in C_k} \sum\limits_{j=1}^{p} (x_{ij} - \bar{x}_{kj})^2
+$$
+
+
+###(b)
+Equation (10.12) shows that minimizing the sum of the squared Euclidean distance for each cluster is the same as minimizing the within-cluster variance for each cluster.
+
+At each iteration of Algorithm 10.1,
+
+(a) For each of the $K$ clusters, compute the cluster centroid. The
+$k$th cluster centroid is the vector of the $p$ feature means for the
+observations in the $k$th cluster.
+
+(b) Assign each observation to the cluster whose centroid is closest.
+
+So the $K$-means clustering algorithm decreases the objective (10.11) at each iteration.
+
+
+## Exercise 2
+###(a)
+```{r}
+d = as.dist(matrix(c(0, 0.3, 0.4, 0.7, 
+                     0.3, 0, 0.5, 0.8,
+                     0.4, 0.5, 0.0, 0.45,
+                     0.7, 0.8, 0.45, 0.0), nrow=4))
+plot(hclust(d, method="complete"),xlab='Observations')
+```
+
+###(b)
+```{r 2b}
+plot(hclust(d, method="single"),xlab='Observations')
+```
+
+###(c)
+(1,2), (3,4)
+
+###(d)
+(1, 2, 3), (4)
+
+###(e)
+```{r 2e}
+plot(hclust(d, method="complete"), labels=c(2,1,4,3), xlab='Observations')
+```
+
+
+## Exercise 3
+###(a)
+```{r}
+x = cbind(c(1, 1, 0, 5, 6, 4), c(4, 3, 4, 1, 2, 0))
+x
+plot(x[,1], x[,2])
+```
+
+###(b)
+```{r}
+set.seed(1)
+labels = sample(2, nrow(x), replace=T)
+cbind(x,labels)
+```
+
+###(c)
+```{r}
+centroid1 = c(mean(x[labels==1, 1]), mean(x[labels==1, 2]))
+centroid2 = c(mean(x[labels==2, 1]), mean(x[labels==2, 2]))
+centroid1
+centroid2
+plot(x[,1], x[,2], col=(labels+1), pch=20, cex=2)
+points(centroid1[1], centroid1[2], col=2, pch=4)
+points(centroid2[1], centroid2[2], col=3, pch=4)
+```
+
+###(d)
+```{r}
+euclid = function(a, b) {
+  return(sqrt((a[1] - b[1])^2 + (a[2]-b[2])^2))
+}
+assign_labels = function(x, centroid1, centroid2) {
+  labels = rep(NA, nrow(x))
+  for (i in 1:nrow(x)) {
+    if (euclid(x[i,], centroid1) < euclid(x[i,], centroid2)) {
+      labels[i] = 1
+    } else {
+      labels[i] = 2
+    }
+  }
+  return(labels)
+}
+labels = assign_labels(x, centroid1, centroid2)
+labels
+```
+
+
+###(e)
+```{r}
+last_labels = rep(-1, 6)
+while (!all(last_labels == labels)) {
+  last_labels = labels
+  centroid1 = c(mean(x[labels==1, 1]), mean(x[labels==1, 2]))
+  centroid2 = c(mean(x[labels==2, 1]), mean(x[labels==2, 2]))
+  labels = assign_labels(x, centroid1, centroid2)
+}
+labels
+```
+
+###(f)
+```{r}
+plot(x[,1], x[,2], col=(labels+1), pch=20, cex=2)
+points(centroid1[1], centroid1[2], col=2, pch=4)
+points(centroid2[1], centroid2[2], col=3, pch=4)
+```
+
+
+## Exercise 4
+###(a)
+Not enough information to tell. The maximal intercluster dissimilarity (complete linkage) could be
+equal or not equal to the minimial intercluster dissimilarity (single linkage). 
+
+If the dissimilarities were equal, they would fuse at the same height. If they were
+not equal, the complete linkage dendogram would fuse at a higher height.
+
+###(b)
+They would fuse at the same height. 
+
+Because linkage does not affect leaf-to-leaf fusion. The maximal intercluster dissimilarity is equal to the minimial intercluster dissimilarity for leaf-to-leaf fusion.
+
+
+## Exercise 5
+###1. Left
+Least socks and computers (3, 4, 5, 6) versus more socks and computers
+(1, 2, 7, 8).
+
+### 2. Center
+Purchased computer (5, 6, 7, 8) versus no computer purchase (1, 2, 3, 4). The
+distance on the computers dimension is greater than the distance on the socks
+dimension.
+
+### 3. Right
+Purchased computer (5, 6, 7, 8) versus no computer purchase (1, 2, 3, 4).
+
+
+## Exercise 6
+###(a)
+
+
+
+
+###(b)
+
+
+
+###(c)
+
+
+## Exercise 7
+
+
+## Exercise 8
+###(a)
+
+
+
+
+###(b)
+
+
+
+## Exercise 9
+###(a)
+
+
+
+
+###(b)
+
+
+
+###(c)
+
+###(d)
+
+
+
+## Exercise 10
+###(a)
+
+
+
+
+###(b)
+
+
+
+###(c)
+
+###(d)
+
+
+
+
+###(e)
+
+
+
+###(f)
+
+###(g)
+
+
+
+## Exercise 11
+###(a)
+
+
+
+
+###(b)
+
+
+
+###(c)
+
+
+
+
+
+
+
