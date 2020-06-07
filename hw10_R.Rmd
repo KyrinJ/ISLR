@@ -1,7 +1,7 @@
 ---
 title: "Homework10_Section 10.7 Exercises"
 author: "Guanghua Qiao"
-date: "2020.6.5"
+date: "2020.6.7"
 output: pdf_document
 ---
 
@@ -170,84 +170,202 @@ Purchased computer (5, 6, 7, 8) versus no computer purchase (1, 2, 3, 4).
 
 ## Exercise 6
 ###(a)
+The first principal component "explains 10% of the variation" means 90% of the information in the gene data set is lost by projecting the tissue sample observations onto the first principal component. 
 
-
+Another way of explaining it is 90% of the variance in the data is not contained in the first principal component.
 
 
 ###(b)
-
+Given the flaw shown in pre-analysis of a time-wise linear trend amongst the tissue samples' first principal component, I would advise the researcher to include the machine used (A vs B) as a feature of the data set. This should enhance the PVE(proportion of variance explained) of the first principal component before applying the two-sample t-test.
 
 
 ###(c)
+```{r}
+set.seed(1)
+Control = matrix(rnorm(50*1000), ncol=50)
+Treatment = matrix(rnorm(50*1000), ncol=50)
+X = cbind(Control, Treatment)
+X[1,] = seq(-18, 18 - .36, .36) # linear trend in one dimension
+```
+
+```{r}
+pr.out = prcomp(scale(X))
+summary(pr.out)$importance[,1]
+```
+9.911% variance explained by the first principal component.
+
+Now, adding in A vs B via 10 vs 0 encoding.
+```{r}
+X = rbind(X, c(rep(10, 50), rep(0, 50)))
+pr.out = prcomp(scale(X))
+summary(pr.out)$importance[,1]
+```
+11.545% variance explained by the first principal component. That's an improvement of 1.634%.
 
 
 ## Exercise 7
+```{r}
+library(ISLR)
+dsc = scale(USArrests)
+a = dist(dsc)^2
+b = as.dist(1 - cor(t(dsc)))
+summary(b/a)
+```
 
 
 ## Exercise 8
 ###(a)
-
-
-
+```{r}
+library(ISLR)
+set.seed(1)
+pr.out = prcomp(USArrests, center=T, scale=T)
+pr.var = pr.out$sdev^2
+pve = pr.var / sum(pr.var)
+pve
+```
 
 ###(b)
-
+```{r}
+loadings = pr.out$rotation
+pve2 = rep(NA, 4)
+# centering and scaling
+dmean = apply(USArrests, 2, mean)
+dsdev = sqrt(apply(USArrests, 2, var))
+dsc = sweep(USArrests, MARGIN=2, dmean, "-")
+dsc = sweep(dsc, MARGIN=2, dsdev, "/")
+for (i in 1:4) {
+  proto_x = sweep(dsc, MARGIN=2, loadings[,i], "*")
+  pc_x = apply(proto_x, 1, sum)
+  pve2[i] = sum(pc_x^2)
+}
+pve2 = pve2/sum(dsc^2)
+pve2
+```
 
 
 ## Exercise 9
 ###(a)
-
-
-
+```{r}
+library(ISLR)
+set.seed(1)
+hc.complete = hclust(dist(USArrests), method="complete")
+plot(hc.complete,xlab='States')
+```
 
 ###(b)
-
-
+```{r}
+cutree(hc.complete, 3)
+table(cutree(hc.complete, 3))
+```
 
 ###(c)
+```{r}
+dsc = scale(USArrests)
+hc.s.complete = hclust(dist(dsc), method="complete")
+plot(hc.s.complete,xlab='States')
+```
 
 ###(d)
+```{r}
+cutree(hc.s.complete, 3)
+table(cutree(hc.s.complete, 3))
+table(cutree(hc.s.complete, 3), cutree(hc.complete, 3))
+```
+Scaling the variables effects the max height of the dendogram obtained from hierarchical clustering. 
 
+It affects the clusters obtained from cutting the dendogram into 3 clusters. 
+
+In my opinion, the variables should be scaled before the inter-observation dissimilarities are computed. 
+
+Because for this data set, the data measured has different units ($UrbanPop$ compared to other three columns).
 
 
 ## Exercise 10
 ###(a)
-
-
-
+```{r}
+set.seed(2)
+x = matrix(rnorm(20*3*50, mean=0, sd=0.001), ncol=50)
+x[1:20, 2] = 1
+x[21:40, 1] = 2
+x[21:40, 2] = 2
+x[41:60, 1] = 1
+```
 
 ###(b)
-
-
+```{r 10b}
+pca.out = prcomp(x)
+summary(pca.out)
+pca.out$x[,1:2]
+plot(pca.out$x[,1:2], col=2:4, xlab="Z1", ylab="Z2", pch=19) 
+```
 
 ###(c)
+```{r}
+km.out = kmeans(x, 3, nstart=20)
+table(km.out$cluster, c(rep(1,20), rep(2,20), rep(3,20)))
+```
+Perfect match.
 
 ###(d)
-
-
-
+```{r}
+km.out = kmeans(x, 2, nstart=20)
+km.out$cluster
+```
+All of one previous class absorbed into a single class.
 
 ###(e)
-
-
+```{r}
+km.out = kmeans(x, 4, nstart=20)
+km.out$cluster
+```
+All of one previous cluster split into two clusters.
 
 ###(f)
+```{r}
+km.out = kmeans(pca.out$x[,1:2], 3, nstart=20)
+table(km.out$cluster, c(rep(1,20), rep(2,20), rep(3,20)))
+```
+Perfect match, once again.
 
 ###(g)
+```{r}
+km.out = kmeans(scale(x), 3, nstart=20)
+km.out$cluster
+```
+Poorer results than (b).
 
+Explanation: the scaling of the observations effects the distance between them.
 
 
 ## Exercise 11
 ###(a)
-
-
-
+```{r}
+data = read.csv("D:/SJTU Lessons/Ch10Ex11.csv", header=F)
+dim(data)
+```
 
 ###(b)
+```{r}
+dd = as.dist(1 - cor(data))
+plot(hclust(dd, method="complete"),xlab='samples')
+plot(hclust(dd, method="single"),xlab='samples')
+plot(hclust(dd, method="average"),xlab='samples')
+```
 
+The samples are separated into two or three groups depending on the linkage methods.
 
 
 ###(c)
+To look at which genes differ the most across the healthy patients and diseased patients, we could look at the loading vectors outputted from PCA to see which genes are used to describe the variance the most.
+```{r}
+pr.out = prcomp(t(data))
+summary(pr.out)
+total_load = apply(pr.out$rotation, 1, sum)
+indices = order(abs(total_load), decreasing=T)
+indices[1:10]
+total_load[indices[1:10]]
+```
+This shows one representation of the top 1% of differing genes. 
 
 
 
