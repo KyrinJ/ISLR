@@ -45,9 +45,20 @@ summary(train$`hsa-let-7a-5p`)
 # $stage$ collapse into i,ii,iii,iv ?
 
 ######  LDA & QDA  ######
+library(MASS)
+lda.fit = lda(stage ~ ., data=train[,-c(2:4)])
+lda.fit
+#plot(lda.fit)
+names(lda.fit)
+lda.pred = predict(lda.fit, test)
+table(lda.pred$class, test$stage)
+mean(lda.pred$class == test$stage)
 
-
-
+qda.fit = qda(stage ~ ., data=train[,-c(2:4)])
+qda.fit
+qda.pred = predict(qda.fit, test)
+table(qda.pred$class, test$stage)
+mean(qda.pred$class == test$stage)
 
 
 ######  KNN  ######
@@ -96,185 +107,84 @@ which(auc==max(auc))
 
 
 ######  tree  ######
-
-
-
-
-
-
-
-
-
-```
-
-## Exercise 10
-(a)
-```{r}
-library(ISLR)
-summary(Weekly)
-pairs(Weekly)
-cor(Weekly[,-9])
-```
-
-Volume and Year seem to have a correlation.
-
-(d)
-```{r}
-attach(Weekly)
-train = (Year <= 2008)
-test = Weekly[!train,]
-l.fit2=glm(Direction~Lag2,data=Weekly,family=binomial,subset=train)
-summary(l.fit2)
-predp = predict(l.fit2,test,type = 'response')
-pred = rep("down", length(predp))
-pred[predp>0.5] = "up"
-table(pred, test$Direction)
-(9+56)/104
-```
-
-Overall fraction of correct predictions for the held out data = 62.5%
-
-(e)
-```{r}
 library(MASS)
-lda.fit = lda(Direction ~ Lag2, data=Weekly, subset=train)
-lda.pred = predict(lda.fit, test)
-table(lda.pred$class, test$Direction)
-mean(lda.pred$class == test$Direction)
-```
+library(tree)
+library(randomForest)
+set.seed(98)
 
-Overall fraction of correct predictions for the held out data = 62.5%
+train.tree <- train[,-c(2:4)]
+colnames(train.tree)=c("stage", paste0("miRNA", 1:641))
+test.tree <- test[,-c(2:4)]
+colnames(test.tree)=c("stage", paste0("miRNA", 1:641))
+train.tree$stage=as.factor(train.tree$stage)
+test.tree$stage=as.factor(test.tree$stage)
 
-(f)
-```{r}
-qda.fit = qda(Direction~Lag2, data=Weekly, subset=train)
-qda.pred = predict(qda.fit, test)
-table(qda.pred$class, test$Direction)
-mean(qda.pred$class == test$Direction)
-```
+tree.Cancer = tree(stage ~ .,train.tree)
+summary(tree.Cancer)
+tree.Cancer
+plot(tree.Cancer)
+text(tree.Cancer, pretty = 0)
+pred = predict(tree.Cancer, test.tree, type = "class")
+table(test.tree$stage, pred)
 
-Overall fraction of correct predictions for the held out data = 58.65%
+cv.Cancer= cv.tree(tree.Cancer, FUN = prune.misclass)
+cv.Cancer= cv.tree(tree.Cancer, FUN = prune.tree)
+cv.Cancer
+plot(cv.Cancer$size, cv.Cancer$dev, type = "b", xlab = "Tree Size", ylab = "Deviance")
+msize = cv.Cancer$size[which.min(cv.Cancer$dev)]
+Cancer.pruned = prune.tree(tree.Cancer, best = msize)
+Cancer.pruned
+summary(Cancer.pruned)
+plot(Cancer.pruned)
+text(Cancer.pruned, pretty=0)
 
-(g)
-```{r}
-library(class)
-train.X = as.matrix(Lag2[train])
-test.X = as.matrix(Lag2[!train])
-train.Direction = Direction[train]
-set.seed(1)
-knn.pred = knn(train.X, test.X, train.Direction, k=1)
-table(knn.pred, test$Direction)
-mean(knn.pred == test$Direction)
-```
+misclass.unpruned = sum(test.tree$stage != pred)
+misclass.unpruned / length(pred)
+pred.pruned = predict(Cancer.pruned, test, type = "class")
+misclass.pruned = sum(test.tree$stage != pred.pruned)
+misclass.pruned / length(pred.pruned)
 
-Overall fraction of correct predictions for the held out data = 50%
+# Random Forest
+X.train = train.tree[,-1]
+X.test = test.tree[,-1]
+Y.train = train.tree[,1]
+Y.test = test.tree[,1]
+p = dim(train.tree)[2] - 1
+p.2 = p / 2
+p.sq = sqrt(p)
+set.seed(114)
+rf.p = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p, ntree=500)
+rf.p.2 = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.2, ntree=500)
+rf.p.sq = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.sq, ntree=500)
+plot(1:500, rf.p$test$err.rate[,1], col="green", type="l", xlab="Number of Trees", ylab="Test MSE")
+lines(1:500, rf.p.2$test$err.rate[,1], col="red", type="l")
+lines(1:500, rf.p.sq$test$err.rate[,1], col="blue", type="l")
+legend("topright", c("m=p", "m=p/2", "m=sqrt(p)"), col=c("green", "red", "blue"), cex=1, lty=1)
+# p/2 is the best.
 
-(i)
-```{r}
-correct.rate=0
-for (i in 1:100){
-  set.seed(1)
-  knn.pred = knn(train.X, test.X, train.Direction, k=i)
-  if (mean(knn.pred == test$Direction)>correct.rate) {
-    correct.rate=mean(knn.pred == test$Direction)
-    k <<- i
+table(rf.p.2$predicted,test.tree$stage)
+mean(rf.p.2$predicted == test.tree$stage)
+
+# Boosting
+library(gbm)
+set.seed(342)
+boost.Cancer = gbm(stage~., data=train.tree, n.trees=1000, shrinkage=0.01)
+summary(boost.Cancer)
+boost.prob = predict(boost.Cancer,test.tree, n.trees=1000, type="response")
+#boost.pred = ifelse(boost.prob >0.5, 1, 0)
+stage.pred=rep(NA,1767)
+for (i in 1:1767){
+  for (j in 1:8){
+    if (boost.prob[i,j,1]>=0.5){
+      stage.pred[i]=colnames(boost.prob[j])
+    }
   }
 }
-correct.rate
-k
+table(boost.pred,test.tree$stage)
 
-detach(Weekly)
+
+
 ```
-
-When $k=4$, Overall fraction of KNN classifier correct predictions = 61.54%
-
-Logistic regression and LDA still provide the best results on the held out data.
-
-## Exercise 11
-(a)
-```{r}
-#summary(Auto)
-attach(Auto)
-mpg01 = rep(0, length(mpg))
-mpg01[mpg>median(mpg)] = 1
-Auto = data.frame(Auto, mpg01)
-```
-(b)
-```{r}
-cor(Auto[,-9])
-pairs(Auto)
-```
-
-mpg01 is anti-correlated with cylinders, weight, displacement and horsepower.
-
-(c)
-```{r}
-train = (year %% 2 == 0)
-test = !train
-Auto.train = Auto[train,]
-Auto.test = Auto[test,]
-```
-
-(d)
-```{r}
-mpg01.test = mpg01[test]
-lda.fit = lda(mpg01~cylinders+weight+displacement+horsepower,
-              data=Auto, subset=train)
-lda.pred = predict(lda.fit, Auto.test)
-mean(lda.pred$class != mpg01.test)
-```
-
-test error = 12.64%
-
-(e)
-```{r}
-qda.fit = qda(mpg01~cylinders+weight+displacement+horsepower,
-              data=Auto, subset=train)
-qda.pred = predict(qda.fit, Auto.test)
-mean(qda.pred$class != mpg01.test)
-```
-
-test error = 13.19%
-
-(f)
-```{r}
-glm.fit = glm(mpg01~cylinders+weight+displacement+horsepower,
-              data=Auto,
-              family=binomial,
-              subset=train)
-glm.probs = predict(glm.fit, Auto.test, type="response")
-glm.pred = rep(0, length(glm.probs))
-glm.pred[glm.probs > 0.5] = 1
-mean(glm.pred != mpg01.test)
-```
-
-test error = 12.09%
-
-(g)
-```{r}
-train.X = cbind(cylinders, weight, displacement, horsepower)[train,]
-test.X = cbind(cylinders, weight, displacement, horsepower)[test,]
-mpg01.train = mpg01[train]
-
-error.rate=1
-k=0
-for (i in 1:100){
-  set.seed(1)
-  knn.pred = knn(train.X, test.X, mpg01.train, k=i)
-  if (mean(knn.pred != mpg01.test)<error.rate) {
-    error.rate=mean(knn.pred != mpg01.test)
-    k <<- i
-  }
-}
-error.rate
-k
-
-detach(Auto)
-```
-
-test error = 13.74% when $K=3$
-
-$K$ of 3 seems to perform the best on this data set.
 
 
 
