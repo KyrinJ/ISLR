@@ -24,19 +24,23 @@ x=can[,-c(1,4:8)]
 y=noncan[,-c(1:3)]
 y$stage='0'
 y$type='0'
-rawcombine=rbind(x,y)
+# merging & deleting
+x1=x[-which(x$stage=='IV'),]
+x2=x1
+x2$stage[which(x1$stage %in% c('IIIA','IIIB'))]='III'
+rawcombine=rbind(x2,y)
 
 ######  seperate train & test set  ######
 set.seed(100)
-train.can=sample(1356,1356/2)
+train.can=sample(1348,1348/2)
 train.noncan=sample(2178,2178/2)
 
-can.train=x[train.can,]
+can.train=x2[train.can,]
 noncan.train=y[train.noncan,]
 table(can.train$stage)
-table(can.train$type)
+#table(can.train$type)
 train=rbind(can.train,noncan.train)
-test=rbind(x[-train.can,],y[-train.noncan,])
+test=rbind(x2[-train.can,],y[-train.noncan,])
 
 ######  pre-process  ######
 summary(train$`hsa-let-7a-5p`)
