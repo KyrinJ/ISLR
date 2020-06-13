@@ -28,10 +28,12 @@ y$type='0'
 x1=x[-which(x$stage=='IV'),]
 x2=x1
 x2$stage[which(x1$stage %in% c('IIIA','IIIB'))]='III'
+x2$stage[which(x1$stage %in% c('IIA','IIB'))]='II'
+x2$stage[which(x1$stage %in% c('IA','IB'))]='I'
 rawcombine=rbind(x2,y)
 
 ######  seperate train & test set  ######
-set.seed(100)
+set.seed(114)
 train.can=sample(1348,1348/2)
 train.noncan=sample(2178,2178/2)
 
@@ -46,6 +48,16 @@ test=rbind(x2[-train.can,],y[-train.noncan,])
 summary(train$`hsa-let-7a-5p`)
 
 # normalization?
+library(ggplot2)
+library(tidyr)
+library(reshape2)
+mydata<-melt(train[,1:54],                       
+       variable.name="miRNA",         
+       value.name="value"          
+       )
+ggplot(mydata, aes(x=miRNA,y=value))+geom_boxplot()
+
+
 
 ######  type  ######
 table(can$type)
