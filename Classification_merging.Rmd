@@ -94,7 +94,7 @@ for (i in 1:50){
 }
 correct.rate
 k
-#correct.rate=0.70345,k=92
+#correct.rate=0.6961,k=92
 # k=92 is not suitable
 # maybe conclude that KNN perform badly, predicting only categories of 0 & IA (for KNN not suitable for high-D data).
 # k=50 only predicts 0, IA & IB
@@ -176,9 +176,9 @@ boost.Cancer = gbm(stage~., data=train.tree, n.trees=1000, shrinkage=0.01)
 summary(boost.Cancer)
 boost.prob = predict(boost.Cancer,test.tree, n.trees=1000, type="response")
 #boost.pred = ifelse(boost.prob >0.5, 1, 0)
-stage.pred=rep(NA,1767)
-for (i in 1:1767){
-  for (j in 1:8){
+stage.pred=rep(NA,dim(boost.prob)[1])
+for (i in 1:dim(boost.prob)[1]){
+  for (j in 1:dim(boost.prob)[2]){
     if (boost.prob[i,j,1]==max(boost.prob[i,,1])){
       stage.pred[i]=colnames(boost.prob)[j]
     }
