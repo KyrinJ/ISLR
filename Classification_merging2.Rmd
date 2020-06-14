@@ -30,19 +30,51 @@ x2=x1
 x2$stage[which(x1$stage %in% c('IIIA','IIIB'))]='III'
 x2$stage[which(x1$stage %in% c('IIA','IIB'))]='II'
 x2$stage[which(x1$stage %in% c('IA','IB'))]='I'
-rawcombine=rbind(x2,y)
+# age & sex
+str(y$Age)
+y1=y
+for (i in 1:dim(y1)[1]){
+  y1$Age[i]=as.numeric(unlist(strsplit(y$Age[i],split=': '))[2])
+}
+y2=na.omit(y1)
+y2$Age=as.numeric(y2$Age)
+x3=x2
+for (i in 1:dim(x2)[1]){
+  x3$Age[i]=as.numeric(unlist(strsplit(x2$Age[i],split=': '))[2])
+}
+x3$Age=as.numeric(x3$Age)
+
+rawcombine=rbind(x3,y2)
+str(rawcombine$Age)
+
+y3=y2[which(y2$Age>=30),]
+set.seed(1)
+y3=y2[sample(2177,1000),]
+
+# cut
+table(x3$Sex)
+summary(x3$Age)
+table(y2$Age)
+ggplot(rbind(x3,y3), aes(x=stage,y=Age))+geom_boxplot()
+
 
 ######  seperate train & test set  ######
 set.seed(114)
 train.can=sample(1348,1348/2)
-train.noncan=sample(2178,2178/2)
+train.noncan=sample(1000,1000/2)
 
-can.train=x2[train.can,]
-noncan.train=y[train.noncan,]
+can.train=x3[train.can,]
+noncan.train=y3[train.noncan,]
 table(can.train$stage)
 #table(can.train$type)
 train=rbind(can.train,noncan.train)
-test=rbind(x2[-train.can,],y[-train.noncan,])
+test=rbind(x3[-train.can,],y3[-train.noncan,])
+train$stage=as.factor(train$stage)
+test$stage=as.factor(test$stage)
+
+ggplot(train, aes(x=stage,y=Age))+geom_boxplot()
+ggplot(test, aes(x=stage,y=Age))+geom_boxplot()
+
 
 ######  pre-process  ######
 summary(train$`hsa-let-7a-5p`)
@@ -98,7 +130,7 @@ library(MASS)
 lda.fit = lda(stage ~ ., data=train[,-c(2:4)])
 #lda.fit
 #plot(lda.fit)
-names(lda.fit)
+#names(lda.fit)
 lda.pred = predict(lda.fit, test)
 table(lda.pred$class, test$stage)
 mean(lda.pred$class == test$stage)
@@ -116,7 +148,7 @@ library(pROC)
 train.X = as.matrix(train[,-c(1:4)])
 test.X = as.matrix(test[,-c(1:4)])
 set.seed(1)
-knn.pred = knn(train.X, test.X, train$stage, k=12)
+knn.pred = knn(train.X, test.X, train$stage, k=9)
 table(knn.pred, test$stage)
 mean(knn.pred == test$stage)
 roc=multiclass.roc(ordered(test$stage),ordered(knn.pred))
@@ -126,6 +158,7 @@ roc=multiclass.roc(ordered(test$stage),ordered(knn.pred))
 correct.rate=0
 correctrate=rep(NA,50)
 auc=rep(NA,50)
+## may add macro-ave in this 
 for (i in 1:50){
   set.seed(1)
   knn.pred = knn(train.X, test.X, train$stage, k=i)
@@ -146,13 +179,10 @@ k
 
 plot(1:50,correctrate,type='l',col='green',xlab='K',ylab='Correct rate & AUC')
 lines(1:50,auc,col='red')
-legend("right", c('Correct rate', "AUC"), col=c("green", "red"), cex=1, lty=1)
+legend("bottomright", c('Correct rate', "AUC"), col=c("green", "red"), cex=1, lty=1)
 
 max(auc)
 which(auc==max(auc))
-# k=12 miss 3 categories/8 all, auc=0.6466, correct.rate=0.6678
-
-#leave one out/cv for K.
 
 
 ######  tree  ######
@@ -165,8 +195,8 @@ train.tree <- train[,-c(2:4)]
 colnames(train.tree)=c("stage", paste0("miRNA", 1:641))
 test.tree <- test[,-c(2:4)]
 colnames(test.tree)=c("stage", paste0("miRNA", 1:641))
-train.tree$stage=as.factor(train.tree$stage)
-test.tree$stage=as.factor(test.tree$stage)
+#train.tree$stage=as.factor(train.tree$stage)
+#test.tree$stage=as.factor(test.tree$stage)
 
 tree.Cancer = tree(stage ~ .,train.tree)
 summary(tree.Cancer)
