@@ -38,24 +38,52 @@ for (i in 1:dim(y1)[1]){
 }
 y2=na.omit(y1)
 y2$Age=as.numeric(y2$Age)
+y3=y2[-which(y2$Age==7),]
 x3=x2
 for (i in 1:dim(x2)[1]){
   x3$Age[i]=as.numeric(unlist(strsplit(x2$Age[i],split=': '))[2])
 }
 x3$Age=as.numeric(x3$Age)
 
-rawcombine=rbind(x3,y2)
+rawcombine=rbind(x3,y3)
 str(rawcombine$Age)
 
-y3=y2[which(y2$Age>=30),]
-set.seed(1)
-y3=y2[sample(2177,1000),]
-
-# cut
 table(x3$Sex)
 summary(x3$Age)
-table(y2$Age)
+summary(y3$Age)
 ggplot(rbind(x3,y3), aes(x=stage,y=Age))+geom_boxplot()
+
+# extract train set directly
+age.size=c(sum(y3$Age<30),
+sum(y3$Age>=30 & y3$Age<40),
+sum(y3$Age>=40 & y3$Age<50),
+sum(y3$Age>=50 & y3$Age<60),
+sum(y3$Age>=60 & y3$Age<70),
+sum(y3$Age>=70 & y3$Age<80),
+sum(y3$Age>=80))
+strata.size=age.size*100/2176
+strata.size2=c(0,18,28,31,17,5,1)
+y.str=y3
+for (i in 1:dim(y.str)[1]){
+  if (y.str$Age[i]<30) {
+    y.str$AgeGroup[i]='age20s'
+  } else if (y.str$Age[i]<40){
+    y.str$AgeGroup[i]='age30s'
+  } else if (y.str$Age[i]<50){
+    y.str$AgeGroup[i]='age40s'
+  } else if (y.str$Age[i]<60){
+    y.str$AgeGroup[i]='age50s'
+  } else if (y.str$Age[i]<70){
+    y.str$AgeGroup[i]='age60s'
+  } else if (y.str$Age[i]<80){
+    y.str$AgeGroup[i]='age70s'
+  } else{
+    y.str$AgeGroup[i]='age80s'
+  }
+}
+library(sampling)
+strata.train=strata(y.str,stratanames=("AgeGroup"),size=strata.size,method="srswor")
+
 
 
 ######  seperate train & test set  ######
@@ -231,7 +259,7 @@ Y.test = test.tree[,1]
 p = dim(train.tree)[2] - 1
 p.2 = p / 2
 p.sq = sqrt(p)
-set.seed(114)
+set.seed(11)
 rf.p = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p, ntree=500)
 rf.p.2 = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.2, ntree=500)
 rf.p.sq = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.sq, ntree=500)
@@ -239,10 +267,9 @@ plot(1:500, rf.p$test$err.rate[,1], col="green", type="l", xlab="Number of Trees
 lines(1:500, rf.p.2$test$err.rate[,1], col="red", type="l")
 lines(1:500, rf.p.sq$test$err.rate[,1], col="blue", type="l")
 legend("topright", c("m=p", "m=p/2", "m=sqrt(p)"), col=c("green", "red", "blue"), cex=1, lty=1)
-# p/2 is the best.
 
-table(rf.p.2$predicted,test.tree$stage)
-mean(rf.p.2$predicted == test.tree$stage)
+table(rf.p.sq$predicted,test.tree$stage)
+mean(rf.p.sq$predicted == test.tree$stage)
 
 # Boosting
 library(gbm)
@@ -285,6 +312,7 @@ macro.ave(confu)
 macro.ave(as.matrix(table(lda.pred$class, test$stage)))
 macro.ave(as.matrix(table(knn.pred, test$stage)))
 macro.ave(as.matrix(table(pred,test.tree$stage)))
+macro.ave(as.matrix(table(rf.p.sq$predicted,test.tree$stage)))
 macro.ave(as.matrix(table(rf.p.2$predicted,test.tree$stage)))
 
 ```
