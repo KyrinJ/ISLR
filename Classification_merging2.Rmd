@@ -181,24 +181,24 @@ library(class)
 library(pROC)
 train.X = as.matrix(train[,-c(1:4)])
 test.X = as.matrix(test.all[,-c(1:2,dim(test.all)[2])])
-set.seed(1)
-knn.pred = knn(train.X, test.X, train$stage, k=9)
-table(knn.pred, test$stage)
-mean(knn.pred == test$stage)
-roc=multiclass.roc(ordered(test$stage),ordered(knn.pred))
+set.seed(11)
+knn.pred = knn(train.X, test.X, train$stage, k=50)
+table(knn.pred, test.all$stage)
+mean(knn.pred == test.all$stage)
+roc=multiclass.roc(ordered(test.all$stage),ordered(knn.pred))
 #str(knn.pred)
 #str(ordered(knn.pred))
 
 correct.rate=0
-correctrate=rep(NA,50)
-auc=rep(NA,50)
+correctrate=rep(NA,100)
+auc=rep(NA,100)
 ## may add macro-ave in this 
-for (i in 1:50){
-  set.seed(1)
+for (i in 1:100){
+  set.seed(11)
   knn.pred = knn(train.X, test.X, train$stage, k=i)
-  roc=multiclass.roc(ordered(test$stage),ordered(knn.pred))
-  if (mean(knn.pred == test$stage)>correct.rate) {
-    correct.rate=mean(knn.pred == test$stage)
+  roc=multiclass.roc(ordered(test.all$stage),ordered(knn.pred))
+  if (mean(knn.pred == test.all$stage)>correct.rate) {
+    correct.rate=mean(knn.pred == test.all$stage)
     k <<- i
   }
   correctrate[i]=correct.rate
@@ -211,8 +211,8 @@ k
 # maybe conclude that KNN perform badly, predicting only categories of 0 & IA (for KNN not suitable for high-D data).
 # k=50 only predicts 0, IA & IB
 
-plot(1:50,correctrate,type='l',col='green',xlab='K',ylab='Correct rate & AUC')
-lines(1:50,auc,col='red')
+plot(1:100,correctrate,type='l',col='green',xlab='K',ylab='Correct rate & AUC',ylim=c(0.5,.75))
+lines(1:100,auc,col='red')
 legend("bottomright", c('Correct rate', "AUC"), col=c("green", "red"), cex=1, lty=1)
 
 max(auc)
@@ -323,12 +323,27 @@ macro.ave=function(confusion.matrix,test=2){
 }
 macro.ave(confu)
 macro.ave(as.matrix(table(lda.pred$class, test.all$stage)))
-macro.ave(as.matrix(table(knn.pred, test$stage)))
+macro.ave(as.matrix(table(knn.pred, test.all$stage)))
 macro.ave(as.matrix(table(pred,test.tree$stage)))
 macro.ave(as.matrix(table(pred.pruned,test.tree$stage)))
 macro.ave(as.matrix(table(rf.p$test$predicted,test.tree$stage)))
 macro.ave(as.matrix(table(rf.p.2$test$predicted,test.tree$stage)))
 
+can_or_non=function(confusion.matrix){
+  # 4*4
+  x=confusion.matrix[1,1]
+  xcol=sum(confusion.matrix[,1])
+  xrow=sum(confusion.matrix[1,])
+  y=sum(confusion.matrix)-xcol-xrow+x
+  return((x+y)/sum(confusion.matrix))
+}
+can_or_non(confu)
+can_or_non(as.matrix(table(lda.pred$class, test.all$stage)))
+can_or_non(as.matrix(table(knn.pred, test.all$stage)))
+can_or_non(as.matrix(table(pred,test.tree$stage)))
+can_or_non(as.matrix(table(pred.pruned,test.tree$stage)))
+can_or_non(as.matrix(table(rf.p$test$predicted,test.tree$stage)))
+can_or_non(as.matrix(table(rf.p.2$test$predicted,test.tree$stage)))
 
 
 
