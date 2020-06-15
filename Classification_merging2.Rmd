@@ -236,7 +236,7 @@ pred = predict(tree.Cancer, test.tree, type = "class")
 table(pred,test.tree$stage)
 
 cv.Cancer= cv.tree(tree.Cancer, FUN = prune.misclass)
-cv.Cancer= cv.tree(tree.Cancer, FUN = prune.tree)
+#cv.Cancer= cv.tree(tree.Cancer, FUN = prune.tree)
 cv.Cancer
 plot(cv.Cancer$size, cv.Cancer$dev, type = "b", xlab = "Tree Size", ylab = "Deviance")
 msize = cv.Cancer$size[which.min(cv.Cancer$dev)]
@@ -248,29 +248,36 @@ text(Cancer.pruned, pretty=0)
 
 misclass.unpruned = sum(test.tree$stage != pred)
 misclass.unpruned / length(pred)
-pred.pruned = predict(Cancer.pruned, test, type = "class")
+pred.pruned = predict(Cancer.pruned, test.tree, type = "class")
 misclass.pruned = sum(test.tree$stage != pred.pruned)
 misclass.pruned / length(pred.pruned)
+table(pred.pruned,test.tree$stage)
+
 
 # Random Forest
 X.train = train.tree[,-1]
-X.test = test.tree[,-1]
+X.test = test.tree[,-dim(test.tree)[2]]
 Y.train = train.tree[,1]
-Y.test = test.tree[,1]
+Y.test = test.tree[,dim(test.tree)[2]]
 p = dim(train.tree)[2] - 1
 p.2 = p / 2
 p.sq = sqrt(p)
-set.seed(11)
-rf.p = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p, ntree=500)
-rf.p.2 = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.2, ntree=500)
-rf.p.sq = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.sq, ntree=500)
-plot(1:500, rf.p$test$err.rate[,1], col="green", type="l", xlab="Number of Trees", ylab="Test MSE")
-lines(1:500, rf.p.2$test$err.rate[,1], col="red", type="l")
-lines(1:500, rf.p.sq$test$err.rate[,1], col="blue", type="l")
+set.seed(114)
+rf.p = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p, ntree=1000)
+rf.p.2 = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.2, ntree=1000)
+rf.p.sq = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.sq, ntree=1000)
+plot(1:1000, rf.p$test$err.rate[,1], col="green", type="l", xlab="Number of Trees", ylab="Test MSE")
+lines(1:1000, rf.p.2$test$err.rate[,1], col="red", type="l")
+lines(1:1000, rf.p.sq$test$err.rate[,1], col="blue", type="l")
 legend("topright", c("m=p", "m=p/2", "m=sqrt(p)"), col=c("green", "red", "blue"), cex=1, lty=1)
 
-table(rf.p.sq$predicted,test.tree$stage)
-mean(rf.p.sq$predicted == test.tree$stage)
+rf.p$test$confusion
+table(rf.p$test$predicted,Y.test)
+mean(rf.p$test$predicted == Y.test)
+rf.p.2$test$confusion
+table(rf.p.2$test$predicted,Y.test)
+mean(rf.p.2$test$predicted == Y.test)
+
 
 # Boosting
 library(gbm)
@@ -313,8 +320,9 @@ macro.ave(confu)
 macro.ave(as.matrix(table(lda.pred$class, test.all$stage)))
 macro.ave(as.matrix(table(knn.pred, test$stage)))
 macro.ave(as.matrix(table(pred,test.tree$stage)))
-macro.ave(as.matrix(table(rf.p.sq$predicted,test.tree$stage)))
-macro.ave(as.matrix(table(rf.p.2$predicted,test.tree$stage)))
+macro.ave(as.matrix(table(pred.pruned,test.tree$stage)))
+macro.ave(as.matrix(table(rf.p$test$predicted,test.tree$stage)))
+macro.ave(as.matrix(table(rf.p.2$test$predicted,test.tree$stage)))
 
 
 
