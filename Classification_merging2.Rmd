@@ -132,6 +132,8 @@ test.all=rbind(y.str[-strata.train$ID_unit,],x.str[-strata.train2$ID_unit,])
 train$stage=as.factor(train$stage)
 test.all$stage=as.factor(test.all$stage)
 train=train[,-dim(train)[2]]
+test.all=test.all[,-dim(test.all)[2]]
+test.all=test.all[,-dim(test.all)[2]]
 
 ggplot(train, aes(x=stage,y=Age))+geom_boxplot()
 ggplot(test.all, aes(x=stage,y=Age))+geom_boxplot()
@@ -158,9 +160,9 @@ lda.fit = lda(stage ~ ., data=train[,-c(2:4)])
 #lda.fit
 #plot(lda.fit)
 #names(lda.fit)
-lda.pred = predict(lda.fit, test)
-table(lda.pred$class, test$stage)
-mean(lda.pred$class == test$stage)
+lda.pred = predict(lda.fit, test.all)
+table(lda.pred$class, test.all$stage)
+mean(lda.pred$class == test.all$stage)
 
 qda.fit = qda(stage ~ ., data=train[,-c(2:4)])
 qda.fit
@@ -216,15 +218,15 @@ which(auc==max(auc))
 library(MASS)
 library(tree)
 library(randomForest)
-set.seed(98)
 
 train.tree <- train[,-c(2:4)]
 colnames(train.tree)=c("stage", paste0("miRNA", 1:641))
-test.tree <- test[,-c(2:4)]
-colnames(test.tree)=c("stage", paste0("miRNA", 1:641))
+test.tree <- test.all[,-c(1:2)]
+colnames(test.tree)=c(paste0("miRNA", 1:641),"stage")
 #train.tree$stage=as.factor(train.tree$stage)
 #test.tree$stage=as.factor(test.tree$stage)
 
+set.seed(98)
 tree.Cancer = tree(stage ~ .,train.tree)
 summary(tree.Cancer)
 tree.Cancer
@@ -308,7 +310,7 @@ macro.ave=function(confusion.matrix,test=2){
   }
 }
 macro.ave(confu)
-macro.ave(as.matrix(table(lda.pred$class, test$stage)))
+macro.ave(as.matrix(table(lda.pred$class, test.all$stage)))
 macro.ave(as.matrix(table(knn.pred, test$stage)))
 macro.ave(as.matrix(table(pred,test.tree$stage)))
 macro.ave(as.matrix(table(rf.p.sq$predicted,test.tree$stage)))
