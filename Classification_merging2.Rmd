@@ -128,13 +128,14 @@ can.train=x.str[strata.train2$ID_unit,]
 
 table(can.train$stage)
 train=rbind(can.train,noncan.train)
-test=rbind(x3[-train.can,],y3[-train.noncan,])
+test.all=rbind(y.str[-strata.train$ID_unit,],x.str[-strata.train2$ID_unit,])
 train$stage=as.factor(train$stage)
-test$stage=as.factor(test$stage)
+test.all$stage=as.factor(test.all$stage)
+train=train[,-dim(train)[2]]
 
 ggplot(train, aes(x=stage,y=Age))+geom_boxplot()
-ggplot(test, aes(x=stage,y=Age))+geom_boxplot()
-
+ggplot(test.all, aes(x=stage,y=Age))+geom_boxplot()
+table(test.all$stage)
 
 ######  pre-process  ######
 summary(train$`hsa-let-7a-5p`)
@@ -148,8 +149,6 @@ mydata<-melt(train[,1:54],
        value.name="value"          
        )
 ggplot(mydata, aes(x=miRNA,y=value))+geom_boxplot()
-
-
 
 
 
