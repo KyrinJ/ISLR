@@ -25,11 +25,11 @@ y=noncan[,-c(1:3)]
 y$stage='0'
 y$type='0'
 # merging & deleting
-x1=x[-which(x$stage=='IV'),]
-x2=x1
-x2$stage[which(x1$stage %in% c('IIIA','IIIB'))]='III'
-x2$stage[which(x1$stage %in% c('IIA','IIB'))]='II'
-x2$stage[which(x1$stage %in% c('IA','IB'))]='I'
+#x1=x[-which(x$stage=='IV'),]
+x2=x
+x2$stage[which(x$stage %in% c('IIIA','IIIB','IV'))]='III'
+x2$stage[which(x$stage %in% c('IIA','IIB'))]='II'
+x2$stage[which(x$stage %in% c('IA','IB'))]='I'
 # age & sex
 str(y$Age)
 y1=y
@@ -110,9 +110,9 @@ x.str$AgeGroup=as.factor(x.str$AgeGroup)
 x.str=x.str[order(x.str$stage,x.str$AgeGroup),]
 (strata.size_1=table(x.str$stage,x.str$AgeGroup)[1,]*100/971)
 (strata.size_2=table(x.str$stage,x.str$AgeGroup)[2,]*100/207)
-(strata.size_3=table(x.str$stage,x.str$AgeGroup)[3,]*100/170)
+(strata.size_3=table(x.str$stage,x.str$AgeGroup)[3,]*100/178)
 # 3*6=18
-strata.size3=c(1,5,17,32,39,6,2,5,12,40,32,9,2,11,15,38,29,5)
+strata.size3=c(1,5,17,32,39,6,2,5,12,40,32,9,2,12,14,38,29,5)
 
 set.seed(11)
 strata.train2=strata(x.str,stratanames=c("stage","AgeGroup"),size=strata.size3,method="srswor")
@@ -141,8 +141,6 @@ table(test.all$stage)
 
 
 ######  pre-process  ######
-summary(train$`hsa-let-7a-5p`)
-
 # normalization?
 # miRNA294
 library(ggplot2)
@@ -190,11 +188,11 @@ roc=multiclass.roc(ordered(test.all$stage),ordered(knn.pred))
 #str(ordered(knn.pred))
 
 correct.rate=0
-correctrate=rep(NA,100)
-auc=rep(NA,100)
+correctrate=rep(NA,150)
+auc=rep(NA,150)
 ## may add macro-ave in this 
-for (i in 1:100){
-  set.seed(11)
+for (i in 1:150){
+  set.seed(114)
   knn.pred = knn(train.X, test.X, train$stage, k=i)
   roc=multiclass.roc(ordered(test.all$stage),ordered(knn.pred))
   if (mean(knn.pred == test.all$stage)>correct.rate) {
@@ -211,12 +209,13 @@ k
 # maybe conclude that KNN perform badly, predicting only categories of 0 & IA (for KNN not suitable for high-D data).
 # k=50 only predicts 0, IA & IB
 
-plot(1:100,correctrate,type='l',col='green',xlab='K',ylab='Correct rate & AUC',ylim=c(0.5,.75))
-lines(1:100,auc,col='red')
+plot(1:150,correctrate,type='l',col='green',xlab='K',ylab='Correct rate & AUC',ylim=c(0.5,.75))
+lines(1:150,auc,col='red')
 legend("bottomright", c('Correct rate', "AUC"), col=c("green", "red"), cex=1, lty=1)
 
 max(auc)
 which(auc==max(auc))
+correctrate[45]
 
 
 ######  tree  ######
@@ -286,7 +285,7 @@ mean(rf.p.2$test$predicted == Y.test)
 
 # Boosting
 library(gbm)
-set.seed(342)
+set.seed(34)
 boost.Cancer = gbm(stage~., data=train.tree, n.trees=1000, shrinkage=0.01)
 summary(boost.Cancer)
 boost.prob = predict(boost.Cancer,test.tree, n.trees=1000, type="response")
