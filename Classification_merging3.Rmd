@@ -212,8 +212,9 @@ library(class)
 library(pROC)
 train.X = as.matrix(train[,-c(1:4)])
 test.X = as.matrix(test.all[,-c(1:2,dim(test.all)[2])])
-set.seed(11)
-knn.pred = knn(train.X, test.X, train$stage, k=50)
+
+set.seed(114)
+knn.pred = knn(train.X, test.X, train$stage, k=112)
 table(knn.pred, test.all$stage)
 mean(knn.pred == test.all$stage)
 roc=multiclass.roc(ordered(test.all$stage),ordered(knn.pred))
@@ -236,8 +237,9 @@ for (i in 1:150){
   correctrate[i]=correct.rate
   auc[i]=roc$auc
 }
-correct.rate
+correct.rate.max
 k
+auc[112]
 #correct.rate=0.6961,k=92
 # k=92 is not suitable
 # maybe conclude that KNN perform badly, predicting only categories of 0 & IA (for KNN not suitable for high-D data).
@@ -273,12 +275,13 @@ text(tree.Cancer, pretty = 0)
 pred = predict(tree.Cancer, test.tree, type = "class")
 table(pred,test.tree$stage)
 
+set.seed(1341)
 cv.Cancer= cv.tree(tree.Cancer, FUN = prune.misclass)
 #cv.Cancer= cv.tree(tree.Cancer, FUN = prune.tree)
 cv.Cancer
-plot(cv.Cancer$size, cv.Cancer$dev, type = "b", xlab = "Tree Size", ylab = "Deviance")
+plot(cv.Cancer$size, cv.Cancer$dev, type = "b", xlab = "Tree Size", ylab = "CV misclass rate")
 msize = cv.Cancer$size[which.min(cv.Cancer$dev)]
-Cancer.pruned = prune.tree(tree.Cancer, best = msize)
+Cancer.pruned = prune.misclass(tree.Cancer, best = msize)
 Cancer.pruned
 summary(Cancer.pruned)
 plot(Cancer.pruned)
@@ -300,14 +303,27 @@ Y.test = test.tree[,dim(test.tree)[2]]
 p = dim(train.tree)[2] - 1
 p.2 = p / 2
 p.sq = sqrt(p)
-set.seed(2054)
+set.seed(18)
 rf.p = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p, ntree=1000)
 rf.p.2 = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.2, ntree=1000)
 rf.p.sq = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.sq, ntree=1000)
-plot(1:1000, rf.p$test$err.rate[,1], col="green", type="l", xlab="Number of Trees", ylab="Test MSE")
+plot(1:1000, rf.p$test$err.rate[,1], col="green", type="l", xlab="Number of Trees", ylab="Test Classification Error")
 lines(1:1000, rf.p.2$test$err.rate[,1], col="red", type="l")
 lines(1:1000, rf.p.sq$test$err.rate[,1], col="blue", type="l")
 legend("topright", c("m=p", "m=p/2", "m=sqrt(p)"), col=c("green", "red", "blue"), cex=1, lty=1)
+
+errRate <- c(1)
+for (i in 1:641){  
+  m <- randomForest(X.train, Y.train,mtry=i,proximity=TRUE)  
+  err<-mean(m$err.rate)  
+  errRate[i] <- err  
+}
+m=which.min(errRate)
+m
+
+which(rf.p$test$err.rate[,1]==min(rf.p$test$err.rate[,1]))
+
+
 
 rf.p$test$confusion
 table(rf.p$test$predicted,Y.test)
@@ -315,6 +331,10 @@ mean(rf.p$test$predicted == Y.test)
 rf.p.2$test$confusion
 table(rf.p.2$test$predicted,Y.test)
 mean(rf.p.2$test$predicted == Y.test)
+
+head(importance(rf.p)[order(importance(rf.p),decreasing = T),])
+head(importance(rf.p.2)[order(importance(rf.p),decreasing = T),])
+colnames(train[,-c(1:4)])[c(294,632,215,347,126,15)]
 
 
 # Boosting
