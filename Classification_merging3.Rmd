@@ -119,13 +119,6 @@ strata.train2=strata(x.str,stratanames=c("stage","AgeGroup"),size=strata.size3,m
 can.train=x.str[strata.train2$ID_unit,]
 
 
-
-#set.seed(114)
-#train.can=sample(1348,1348/2)
-#train.noncan=sample(1000,1000/2)
-#can.train=x3[train.can,]
-#noncan.train=y3[train.noncan,]
-
 table(can.train$stage)
 train=rbind(can.train,noncan.train)
 test.all=rbind(y.str[-strata.train$ID_unit,],x.str[-strata.train2$ID_unit,])
@@ -168,10 +161,13 @@ lda.pred = predict(lda.fit, test.all)
 table(lda.pred$class, test.all$stage)
 mean(lda.pred$class == test.all$stage)
 
-lda.fit=lda(stage~miRNA294+miRNA215,data=train.tree)
+lda.fit=lda(stage~miRNA294+miRNA635,data=train.tree)
 lda.pred = predict(lda.fit, test.tree)
 table(lda.pred$class, test.tree$stage)
 mean(lda.pred$class == test.tree$stage)
+
+macro.ave(as.matrix(table(lda.pred$class, test.all$stage)))
+can_or_non(as.matrix(table(lda.pred$class, test.all$stage)))
 
 correct.rate.max=0
 correctrate=rep(NA,641)
@@ -181,10 +177,9 @@ for (i in 1:641){
     correctrate[i]=NA
     auc[i]=NA
   }else{
-    set.seed(114)
-    lda.fit=lda(stage~miRNA294+train.tree[,i+1],data=train.tree)
+    lda.fit=lda(stage~miRNA294+eval(as.symbol(paste0('miRNA',i))),data=train.tree)
     lda.pred = predict(lda.fit, test.tree)
-    roc=multiclass.roc(ordered(test.tree$stage),ordered(lda.pred))
+    roc=multiclass.roc(ordered(test.tree$stage),ordered(lda.pred$class))
     correct.rate=mean(lda.pred$class == test.tree$stage)
     if (correct.rate>correct.rate.max) {
       correct.rate.max=correct.rate
@@ -196,8 +191,20 @@ for (i in 1:641){
 }
 correct.rate.max
 k
+max(auc)
+which(auc==max(auc))
+correctrate[189]
+auc[635]
 
+# Attention! change of length: 641 -> 640
+correctrate=na.omit(correctrate)
+auc=na.omit(auc)
+#plot(1:640,correctrate,type='l',col='green',xlab='Two-miRNA panels',ylab='Correct rate & AUC',ylim=c(0.5,.75))
+#lines(1:640,auc,col='red')
+#legend("bottomright", c('Correct rate', "AUC"), col=c("green", "red"), cex=1, lty=1)
 
+colnames(train[,-c(1:4)])[c(294,215,632,244,302)]
+colnames(train[,-c(1:4)])[c(294,635,189)]
 
 
 ######  KNN  ######
