@@ -6,49 +6,43 @@ from sklearn.metrics import roc_curve, auc
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import label_binarize
 from sklearn.multiclass import OneVsRestClassifier
+#from sklearn.multiclass import OneVsOneClassifier
 from scipy import interp
 import os
 
-# 加载数据
-iris = datasets.load_iris()
-X = iris.data
-y = iris.target
-# 将标签二值化
-y = label_binarize(y, classes=[0, 1, 2])
-# 设置种类
-n_classes = y.shape[1]
-
 x_train=np.loadtxt('D:/SJTU Lessons/X_train.txt',delimiter=' ')
 x_test=np.loadtxt('D:/SJTU Lessons/X_test.txt',delimiter=' ')
+# 将标签二值化
 Y_train=np.loadtxt('D:/SJTU Lessons/Y_train.txt',delimiter=' ')
 Y_train = label_binarize(Y_train, classes=[0, 1, 2, 3])
 Y_test=np.loadtxt('D:/SJTU Lessons/Y_test.txt',delimiter=' ')
 Y_test = label_binarize(Y_test, classes=[0, 1, 2, 3])
+# 设置种类
+n_classes=4
 
 # 训练模型并预测
 #seed
 random_state = np.random.RandomState(0)
 #dim
-n_samples, n_features = X.shape
-
-# shuffle and split training and test sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.5,random_state=0)
+n_samples=3532
+n_features = 641
 
 # Learn to predict each class against the other
-classifier = OneVsRestClassifier(svm.SVC(kernel='linear', probability=True,
+#'linear’, ‘poly’, ‘rbf'  
+classifier = OneVsRestClassifier(svm.SVC(kernel='rbf', probability=True,
                                  random_state=random_state))
-y_score = classifier.fit(X_train, y_train).decision_function(X_test)
+y_score = classifier.fit(x_train, Y_train).decision_function(x_test)
 
 # 计算每一类的ROC
 fpr = dict()
 tpr = dict()
 roc_auc = dict()
 for i in range(n_classes):
-    fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i])
+    fpr[i], tpr[i], _ = roc_curve(Y_test[:, i], y_score[:, i])
     roc_auc[i] = auc(fpr[i], tpr[i])
 
 # Compute micro-average ROC curve and ROC area（方法二）
-fpr["micro"], tpr["micro"], _ = roc_curve(y_test.ravel(), y_score.ravel())
+fpr["micro"], tpr["micro"], _ = roc_curve(Y_test.ravel(), y_score.ravel())
 roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
 
 # Compute macro-average ROC curve and ROC area（方法一）
@@ -68,12 +62,12 @@ roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
 lw=2
 plt.figure()
 plt.plot(fpr["micro"], tpr["micro"],
-         label='micro-average ROC curve (area = {0:0.2f})'
+         label='micro-average ROC (area = {0:0.2f})'
                ''.format(roc_auc["micro"]),
          color='deeppink', linestyle=':', linewidth=4)
 
 plt.plot(fpr["macro"], tpr["macro"],
-         label='macro-average ROC curve (area = {0:0.2f})'
+         label='macro-average ROC (area = {0:0.2f})'
                ''.format(roc_auc["macro"]),
          color='navy', linestyle=':', linewidth=4)
 
