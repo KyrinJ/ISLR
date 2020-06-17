@@ -421,6 +421,36 @@ can_or_non(as.matrix(table(rf$test$predicted,test.tree$stage)))
 
 
 
+
+write.table(X.train,file="D:/SJTU Lessons/X_train.txt" , sep =" ", row.names =FALSE,col.names =F, quote =FALSE)
+write.table(X.test,file="D:/SJTU Lessons/X_test.txt" , sep =" ", row.names =FALSE,col.names =F, quote =FALSE)
+y_train=c()
+y_test=c()
+y_train[Y.train=='0']=0
+y_train[Y.train=='I']=1
+y_train[Y.train=='II']=2
+y_train[Y.train=='III']=3
+y_test[Y.test=='0']=0
+y_test[Y.test=='I']=1
+y_test[Y.test=='II']=2
+y_test[Y.test=='III']=3
+write.table(y_train,file="D:/SJTU Lessons/Y_train.txt" , sep =" ", row.names =FALSE,col.names =F, quote =FALSE)
+write.table(y_test,file="D:/SJTU Lessons/Y_test.txt" , sep =" ", row.names =FALSE,col.names =F, quote =FALSE)
+
+svm.prob=read.table("D:/SJTU Lessons/svmpred.txt",sep=' ')
+colnames(svm.prob)=c('0','I','II','III')
+svm.pred=rep(NA,dim(svm.prob)[1])
+for (i in 1:dim(svm.prob)[1]){
+  for (j in 1:dim(svm.prob)[2]){
+    if (svm.prob[i,j]==max(svm.prob[i,])){
+      svm.pred[i]=colnames(svm.prob)[j]
+    }
+  }
+}
+svm.pred=as.factor(svm.pred)
+table(svm.pred,test.tree$stage)
+mean(svm.pred == test.tree$stage)
+
 ```
 
 
