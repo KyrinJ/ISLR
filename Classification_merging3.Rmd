@@ -303,7 +303,7 @@ Y.test = test.tree[,dim(test.tree)[2]]
 p = dim(train.tree)[2] - 1
 p.2 = p / 2
 p.sq = sqrt(p)
-set.seed(18)
+set.seed(666)
 rf.p = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p, ntree=1000)
 rf.p.2 = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.2, ntree=1000)
 rf.p.sq = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.sq, ntree=1000)
@@ -312,38 +312,57 @@ lines(1:1000, rf.p.2$test$err.rate[,1], col="red", type="l")
 lines(1:1000, rf.p.sq$test$err.rate[,1], col="blue", type="l")
 legend("topright", c("m=p", "m=p/2", "m=sqrt(p)"), col=c("green", "red", "blue"), cex=1, lty=1)
 
+# run for 1 hour...
 errRate <- c(1)
-for (i in 1:641){  
+for (i in 1:641){
+  set.seed(66)
   m <- randomForest(X.train, Y.train,mtry=i,proximity=TRUE)  
   err<-mean(m$err.rate)  
   errRate[i] <- err  
 }
 m=which.min(errRate)
 m
+plot(1:641,errRate)
 
-which(rf.p$test$err.rate[,1]==min(rf.p$test$err.rate[,1]))
+set.seed(66)
+rf.552 = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=552, ntree=1000)
+rf.p = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p, ntree=1000)
+rf.p.2 = randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=p.2, ntree=1000)
+plot(1:500, rf.552$test$err.rate[1:500,1], col="blue", type="l", xlab="Number of Trees", ylab="Test Classification Error")
+lines(1:500, rf.p.2$test$err.rate[1:500,1], col="red", type="l")
+lines(1:500, rf.p$test$err.rate[1:500,1], col="green", type="l")
+legend("topright", c("m=p", "m=p/2", "m=552"), col=c("green", "red", "blue"), cex=1, lty=1)
 
-
+which.min(rf.552$test$err.rate[-c(16),1])
+rf.552$test$err.rate[254,1]
+rf.552$test$err.rate[250,1]
+plot(rf.552)
+set.seed(66)
+rf=randomForest(X.train, Y.train, xtest=X.test, ytest=Y.test, mtry=552, ntree=500)
 
 rf.p$test$confusion
 table(rf.p$test$predicted,Y.test)
 mean(rf.p$test$predicted == Y.test)
-rf.p.2$test$confusion
-table(rf.p.2$test$predicted,Y.test)
-mean(rf.p.2$test$predicted == Y.test)
+rf.552$test$confusion
+table(rf.552$test$predicted,Y.test)
+mean(rf.552$test$predicted == Y.test)
+rf$test$confusion
+table(rf$test$predicted,Y.test)
+mean(rf$test$predicted == Y.test)
 
 head(importance(rf.p)[order(importance(rf.p),decreasing = T),])
-head(importance(rf.p.2)[order(importance(rf.p),decreasing = T),])
-colnames(train[,-c(1:4)])[c(294,632,215,347,126,15)]
+head(importance(rf)[order(importance(rf),decreasing = T),])
+colnames(train[,-c(1:4)])[c(294,10,215,302,632,67)]
 
 
 # Boosting
 library(gbm)
 set.seed(34)
 boost.Cancer = gbm(stage~., data=train.tree, n.trees=1000, shrinkage=0.01)
-summary(boost.Cancer)
-boost.prob = predict(boost.Cancer,test.tree, n.trees=1000, type="response")
-#boost.pred = ifelse(boost.prob >0.5, 1, 0)
+boost.Cancer10 = gbm(stage~., data=train.tree, n.trees=1000, shrinkage=0.01,cv.folds = 10)
+boost.Cancer10
+head(summary(boost.Cancer10))
+boost.prob = predict(boost.Cancer10,test.tree, n.trees=1000, type="response")
 stage.pred=rep(NA,dim(boost.prob)[1])
 for (i in 1:dim(boost.prob)[1]){
   for (j in 1:dim(boost.prob)[2]){
@@ -355,6 +374,8 @@ for (i in 1:dim(boost.prob)[1]){
 stage.pred=as.factor(stage.pred)
 table(stage.pred,test.tree$stage)
 mean(stage.pred == test.tree$stage)
+colnames(train[,-c(1:4)])[c(294,215,632,244,383,302)]
+
 
 # calculate macro-average for boosting model
 confu=as.matrix(table(stage.pred,test.tree$stage))
@@ -380,7 +401,7 @@ macro.ave(as.matrix(table(knn.pred, test.all$stage)))
 macro.ave(as.matrix(table(pred,test.tree$stage)))
 macro.ave(as.matrix(table(pred.pruned,test.tree$stage)))
 macro.ave(as.matrix(table(rf.p$test$predicted,test.tree$stage)))
-macro.ave(as.matrix(table(rf.p.2$test$predicted,test.tree$stage)))
+macro.ave(as.matrix(table(rf$test$predicted,test.tree$stage)))
 
 can_or_non=function(confusion.matrix){
   # 4*4
@@ -396,7 +417,7 @@ can_or_non(as.matrix(table(knn.pred, test.all$stage)))
 can_or_non(as.matrix(table(pred,test.tree$stage)))
 can_or_non(as.matrix(table(pred.pruned,test.tree$stage)))
 can_or_non(as.matrix(table(rf.p$test$predicted,test.tree$stage)))
-can_or_non(as.matrix(table(rf.p.2$test$predicted,test.tree$stage)))
+can_or_non(as.matrix(table(rf$test$predicted,test.tree$stage)))
 
 
 
