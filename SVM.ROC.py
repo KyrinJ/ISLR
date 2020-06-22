@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import label_binarize
 from sklearn.multiclass import OneVsRestClassifier
 #from sklearn.multiclass import OneVsOneClassifier
+from sklearn.model_selection import GridSearchCV
 from scipy import interp
 import os
 
@@ -28,9 +29,9 @@ n_samples=3532
 n_features = 641
 
 # Learn to predict each class against the other
-#'linear’, ‘poly’, ‘rbf'  
-classifier = OneVsRestClassifier(svm.SVC(kernel='rbf', probability=True,
-                                 random_state=random_state))
+#'linear’, ‘poly’, ‘rbf'
+classifier = OneVsRestClassifier(svm.SVC(kernel='rbf', probability=True, C=0.1, degree=2,
+                                 gamma=0.001, random_state=random_state))
 y_score = classifier.fit(x_train, Y_train).decision_function(x_test)
 
 # 计算每一类的ROC
